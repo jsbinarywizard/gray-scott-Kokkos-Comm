@@ -15,8 +15,10 @@
 // data type
 #if PRECISION == 64
 using real = double;
+#define MPI_REAL_TYPE MPI_DOUBLE
 #elif PRECISION == 32
 using real = float;
+#define MPI_REAL_TYPE MPI_FLOAT
 #else
 #error "unknown precision"
 #endif
@@ -190,20 +192,6 @@ struct CommBuffers {
         recv[SE] = Kokkos::View<real*>("recv_SE", 1);
     }
 };
-
-
-// -----------------------------------------------------------------------------
-// MPI datatype
-// -----------------------------------------------------------------------------
-
-static MPI_Datatype mpi_real_type() {
-    if constexpr (std::is_same_v<real, double>) {
-        return MPI_DOUBLE;
-    } else {
-        return MPI_FLOAT;
-    }
-}
-
 
 // -----------------------------------------------------------------------------
 // Direction helper
@@ -415,7 +403,7 @@ static void exchange(View& field, const CartesianDecomposition& d,
         }
         MPI_Irecv(b.recv[dir].data(),
                   static_cast<int>(b.recv[dir].size()),
-                  std::is_same_v<real, double> ? MPI_DOUBLE : MPI_FLOAT,
+                  MPI_REAL_TYPE,
                   d.neighbors[dir], tag_base + dir, d.comm,
                   &requests[nreq++]);
     }
@@ -426,7 +414,7 @@ static void exchange(View& field, const CartesianDecomposition& d,
         }
         MPI_Isend(b.send[dir].data(),
                   static_cast<int>(b.send[dir].size()),
-                  std::is_same_v<real, double> ? MPI_DOUBLE : MPI_FLOAT,
+                  MPI_REAL_TYPE,
                   d.neighbors[dir], tag_base + opposite(dir), d.comm,
                   &requests[nreq++]);
     }
@@ -628,7 +616,7 @@ static real check_global(
         &local,
         &global,
         1,
-        mpi_real_type(),
+        MPI_REAL_TYPE,
         MPI_SUM,
         d.comm);
 
@@ -672,6 +660,22 @@ int main(int argc, char* argv[]) {
         CartesianDecomposition decomposition(
             global_rows,
             global_columns);
+
+        // Print rank info for debugging.
+        std::cout
+            << "Rank "
+            << decomposition.rank
+            << " of "
+            << decomposition.size
+            << " (coords "
+            << decomposition.coords[0]
+            << ","
+            << decomposition.coords[1]
+            << ") has local domain "
+            << decomposition.local_rows
+            << "x"
+            << decomposition.local_columns
+            << '\n';
 
         // Each rank owns:
         //
