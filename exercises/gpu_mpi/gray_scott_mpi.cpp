@@ -661,22 +661,6 @@ int main(int argc, char* argv[]) {
             global_rows,
             global_columns);
 
-        // Print rank info for debugging.
-        std::cout
-            << "Rank "
-            << decomposition.rank
-            << " of "
-            << decomposition.size
-            << " (coords "
-            << decomposition.coords[0]
-            << ","
-            << decomposition.coords[1]
-            << ") has local domain "
-            << decomposition.local_rows
-            << "x"
-            << decomposition.local_columns
-            << '\n';
-
         // Each rank owns:
         //
         //     local_rows x local_columns
